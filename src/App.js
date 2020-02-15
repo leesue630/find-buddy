@@ -7,7 +7,9 @@ import RequestDiv from "./components/requestDiv";
 import {
   Stitch,
   AnonymousCredential,
-  RemoteMongoClient
+  UserPasswordCredential,
+  RemoteMongoClient,
+  UserPasswordAuthProviderClient
 } from "mongodb-stitch-browser-sdk";
 
 class App extends Component {
@@ -18,8 +20,8 @@ class App extends Component {
     this.state = {
       searching: false,
       user: {
-        andrewID: this.props.andrewID,
-        fullName: ""
+        andrewID: "nwai",
+        name: ""
       },
       searchers: []
     };
@@ -40,23 +42,23 @@ class App extends Component {
     // Get a reference to the todo database
     console.log("App Mounted");
     this.dbSearching = mongodb.db("searching");
-    this.dbBuddies = mongodb.db("buddies");
+    this.dbUser = mongodb.db("user");
     this.displayOnLoad();
     this.updateUserDisplay();
   }
 
   updateUserDisplay() {
-    const query = { "item.andrewID": { $eq: this.state.andrewID } };
+    const query = { "buddies.andrewID": { $eq: this.state.andrewID } };
     const options = {
       limit: 1
     };
-    this.dbBuddies
-      .collection("item") // TODO: FIX COLLECTION NAME
+    this.dbUser
+      .collection("buddies")
       .find(query, options)
       .first()
       .then(user => {
         console.log(`Successfully found user account from db:buddies.`);
-        this.setState({ name: user.fullName });
+        this.setState({ name: user.name });
       })
       .catch(console.error);
   }
@@ -75,46 +77,33 @@ class App extends Component {
       })
       .catch(console.error);
   }
+
   displayOnLoad() {
     // Anonymously log in and display comments on load
-    // this.client.auth
-    //   .loginWithCredential(new AnonymousCredential())
-    //   .then(this.displaySearchers)
-    //   .catch(console.error);
-
-    const credential = new UserPasswordCredential(
-      this.state.andrewID + "@andrew.cmu.edu",
-      this.props.password
-    );
     this.client.auth
-      .loginWithCredential(credential)
-      // Returns a promise that resolves to the authenticated user
-      .then(authedUser => {
-        console.log(`successfully logged in with id: ${authedUser.id}`);
+      .loginWithCredential(new AnonymousCredential())
+      .then(() => {
         this.displaySearchers();
         this.updateUserDisplay();
       })
-      .catch(err => console.error(`login failed with error: ${err}`));
+      .catch(console.error);
+
+    // const credential = new UserPasswordCredential(
+    //   this.state.andrewID + "@andrew.cmu.edu",
+    //   this.props.password
+    // );
+    // this.client.auth
+    //   .loginWithCredential(credential)
+    //   // Returns a promise that resolves to the authenticated user
+    //   .then(authedUser => {
+    //     console.log(`successfully logged in with id: ${authedUser.id}`);
+    //     this.displaySearchers();
+    //     this.updateUserDisplay();
+    //   })
+    //   .catch(err => console.error(`login failed with error: ${err}`));
   }
 
-  handleRequestBuddy = (dest, timeBy) => {
-    console.log(
-      "handleRequestBuddy: " +
-        this.state.currLocation +
-        ", " +
-        dest +
-        ", " +
-        timeBy
-    );
-    this.client
-      .callFunction("addSearchingUser", [
-        this.state.user.andrewID,
-        this.state.currLocation,
-        dest
-      ])
-      .then(result => this.displaySearchers)
-      .catch(console.error);
-    this.setState({ searching: true });
+  getBuddy = (dest, timeBy) => {
     this.client
       .callFunction("getBuddy", [
         {
@@ -127,6 +116,37 @@ class App extends Component {
       .catch(console.error);
   };
 
+  handleRequestBuddy = (dest, timeBy) => {
+    console.log(
+      "handleRequestBuddy: " +
+        this.state.currLocation +
+        ", " +
+        dest +
+        ", " +
+        timeBy
+    );
+    // this.client
+    //   .callFunction("addSearchingUser", [
+    //     this.state.user.andrewID,
+    //     this.state.currLocation,
+    //     dest
+    //   ])
+    //   .then(result => this.displaySearchers)
+    //   .catch(console.error);
+    this.dbSearching
+      .collection("searcher")
+      .insertOne({
+        andrewID: this.state.user.andrewID,
+        currLocation: this.state.currLocation,
+        destination: dest
+      })
+      .then(() => {
+        this.displaySearchers();
+        // this.getBuddy(dest, timeBy);
+      });
+    this.setState({ searching: true });
+  };
+
   handleCurrLocChange = loc => {
     console.log("location changed to: " + loc);
     this.setState({ currLocation: loc });
@@ -135,7 +155,10 @@ class App extends Component {
   render() {
     return (
       <React.Fragment>
-        <InfoCard andrewID={this.state.user.andrewID} />
+        <InfoCard
+          andrewID={this.state.user.andrewID}
+          name={this.state.user.name}
+        />
         Current:{" "}
         <LocationDropdown
           setLoc={this.state.currLocation}

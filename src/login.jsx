@@ -1,5 +1,13 @@
 import React, { Component } from "react";
 import { BrowserRouter, Route, Link } from "react-router-dom";
+import App from "./App";
+import {
+  Stitch,
+  AnonymousCredential,
+  UserPasswordCredential,
+  RemoteMongoClient,
+  UserPasswordAuthProviderClient
+} from "mongodb-stitch-browser-sdk";
 
 class Login extends Component {
   state = {
@@ -7,15 +15,17 @@ class Login extends Component {
     password: ""
   };
   routing = (
-    <Router>
+    <BrowserRouter>
       <div>
         <Route
           exact
           path="/"
-          component={App({ andrewID: this.andrewID, password: this.password })}
+          component={
+            new App({ andrewID: this.andrewID, password: this.password })
+          }
         />
       </div>
-    </Router>
+    </BrowserRouter>
   );
 
   handleAndrewChange = andID => {
@@ -29,7 +39,9 @@ class Login extends Component {
   };
 
   handleLogin = () => {
-    const app = Stitch.defaultAppClient;
+    const app = Stitch.defaultAppClient.getProviderClient(
+      UserPasswordAuthProviderClient.factory
+    );
     const credential = new UserPasswordCredential(
       this.state.andrewID + "@andrew.cmu.edu",
       this.state.password
@@ -42,6 +54,20 @@ class Login extends Component {
         window.location.href = "/";
       })
       .catch(err => console.error(`login failed with error: ${err}`));
+  };
+
+  handleRegister = () => {
+    const emailPasswordClient = Stitch.defaultAppClient.auth.getProviderClient(
+      UserPasswordAuthProviderClient.factory
+    );
+    const credential = new UserPasswordCredential(
+      this.state.andrewID + "@andrew.cmu.edu",
+      this.state.password
+    );
+    emailPasswordClient
+      .registerWithEmail(credential)
+      .then(() => console.log("Successfully sent account confirmation email!"))
+      .catch(err => console.error("Error registering new user:", err));
   };
 
   render() {
@@ -71,6 +97,9 @@ class Login extends Component {
 
         <button type="submit" onClick={() => this.handleLogin()}>
           Login
+        </button>
+        <button type="submit" onClick={() => this.handleRegister()}>
+          Register
         </button>
         {this.routing}
       </div>

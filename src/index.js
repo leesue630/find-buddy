@@ -8,12 +8,12 @@ import "bootstrap/dist/css/bootstrap.css";
 import { BrowserRouter, Route, Link } from "react-router-dom";
 
 const routing = (
-  <Router>
+  <BrowserRouter>
     <div>
       <Route exact path="/" component={App} />
       <Route path="/login" component={Login} />
     </div>
-  </Router>
+  </BrowserRouter>
 );
 
 ReactDOM.render(routing, document.getElementById("root"));
