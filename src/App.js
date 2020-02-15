@@ -107,35 +107,7 @@ class App extends Component {
   }
 
   getBuddy = (dest, timeBy) => {
-    this.client
-      .callFunction("getBuddy", [
-        {
-          andrewID: this.state.user.andrewID,
-          currLocation: this.state.currLocation,
-          destination: dest
-        }
-      ])
-      .then((caller, buddy) => console.log(caller + ", " + buddy))
-      .catch(console.error);
-  };
-
-  handleRequestBuddy = (dest, timeBy) => {
-    console.log(
-      "handleRequestBuddy: " +
-        this.state.currLocation +
-        ", " +
-        dest +
-        ", " +
-        timeBy
-    );
-    this.client
-      .callFunction("addSearchingUser", [
-        this.state.user.andrewID,
-        this.state.currLocation,
-        dest
-      ])
-      .then(result => this.displaySearchers)
-      .catch(console.error);
+    // GET BUDDY FUNCTION GOES HERE
     this.dbSearching
       .collection("searcher")
       .insertOne({
@@ -147,7 +119,26 @@ class App extends Component {
         this.displaySearchers();
         // this.getBuddy(dest, timeBy);
       });
-    this.setState({ searching: true });
+  };
+
+  addRequest = (dest, timeBy) => {
+    // ADD THE ADD TO SEARCHING FUNCTION HERE
+  };
+
+  handleRequestBuddy = (dest, timeBy) => {
+    console.log(
+      "handleRequestBuddy: " +
+        this.state.currLocation +
+        ", " +
+        dest +
+        ", " +
+        timeBy
+    );
+    if (!this.state.searching) {
+      this.addRequest(dest, timeBy);
+      this.setState({ searching: true });
+    }
+    this.getBuddy(dest, timeBy);
   };
 
   handleCurrLocChange = loc => {
