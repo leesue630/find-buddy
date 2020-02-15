@@ -56,7 +56,7 @@ class RequestDiv extends Component {
           }
           className="btn btn-primary btn-sm m-2"
         >
-          Request Buddy
+          {this.props.searching ? "Request Buddy" : "Try Again"}
         </button>
       </div>
     );
