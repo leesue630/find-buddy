@@ -1,9 +1,9 @@
 import React, { Component } from "react";
 // import logo from "./logo.svg";
-import CurrLocation from "./components/currLocation";
+import LocationDropdown from "./components/locationDropdown";
 import "./App.css";
 import InfoCard from "./components/infoCard";
-import RequestBtn from "./components/requestBtn";
+import RequestDiv from "./components/requestDiv";
 import {
   Stitch,
   AnonymousCredential,
@@ -16,15 +16,11 @@ class App extends Component {
   constructor(props) {
     super(props);
     this.state = {
-      id: "123",
-      currLocation: "",
       searching: false,
       user: {
         andrewID: "nwai"
       },
-      searchers: [],
-      value: "",
-      db: null
+      searchers: []
     };
     this.displaySearchers = this.displaySearchers.bind(this);
     this.handleRequestBuddy = this.handleRequestBuddy.bind(this);
@@ -42,24 +38,41 @@ class App extends Component {
     );
     // Get a reference to the todo database
     console.log("App Mounted");
-    var dbnew = mongodb.db("searching");
-    this.setState({ db: dbnew });
-    // this.state.db = mongodb.db("searching");
+    this.dbSearching = mongodb.db("searching");
+    this.dbBuddies = mongodb.db("buddies");
     this.displaySearchersOnLoad();
+    this.updateUserDisplay();
+  }
+
+  updateUserDisplay() {
+    const query = { "item.andrewID": { $eq: this.state.andrewID } };
+    const options = {
+      limit: 1
+    };
+    this.dbBuddies
+      .collection("item")
+      .find(query, options)
+      .first()
+      .then(user => {
+        console.log(`Successfully found user account from db:buddies.`);
+        this.setState({ name: user.Name });
+      })
+      .catch(console.error);
   }
 
   displaySearchers() {
     // query the remote DB and update the component state
     console.log("displaySearchers called");
-    console.log(this.state.db);
+    console.log(this.dbSearching);
     console.log("hi");
-    this.state.db
+    this.dbSearching
       .collection("searcher")
       .find({}, { limit: 1000 })
       .asArray()
       .then(searchers => {
         this.setState({ searchers });
-      });
+      })
+      .catch(console.error);
   }
   displaySearchersOnLoad() {
     // Anonymously log in and display comments on load
@@ -70,7 +83,14 @@ class App extends Component {
   }
 
   handleRequestBuddy = (dest, timeBy) => {
-    console.log(this.state.currLocation + ", " + dest + ", " + timeBy);
+    console.log(
+      "handleRequestBuddy: " +
+        this.state.currLocation +
+        ", " +
+        dest +
+        ", " +
+        timeBy
+    );
     this.client
       .callFunction("addSearchingUser", [
         this.state.user.andrewID,
@@ -93,7 +113,7 @@ class App extends Component {
   };
 
   handleCurrLocChange = loc => {
-    console.log("location changed to:" + loc);
+    console.log("location changed to: " + loc);
     this.setState({ currLocation: loc });
   };
 
@@ -101,20 +121,23 @@ class App extends Component {
     return (
       <React.Fragment>
         <InfoCard andrewID={this.state.user.andrewID} />
-        <CurrLocation
-          loc={this.state.currLocation}
-          locChoices={this.locationChoices}
-          onChangeLoc={this.handleCurrLocChange}
+        Current:{" "}
+        <LocationDropdown
+          setLoc={this.state.currLocation}
+          dropdownName="curr"
+          choices={this.locationChoices}
+          onChange={this.handleCurrLocChange}
         />
-        <RequestBtn
-          locChoices={this.locationChoices}
+        <RequestDiv
+          choices={this.locationChoices}
           onRequest={this.handleRequestBuddy}
         />
         <ul>
           {this.state.searchers.map(searcher => {
             return (
               <li key={searcher.owner_id}>
-                {searcher.andrewID},{searcher.destination}
+                Andrew ID: {searcher.andrewID}, Start: {searcher.currLocation},
+                Destination: {searcher.destination}
               </li>
             );
           })}
