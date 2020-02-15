@@ -48,17 +48,20 @@ class App extends Component {
   }
 
   updateUserDisplay() {
-    const query = { "buddies.andrewID": { $eq: this.state.andrewID } };
+    const query = { "buddies.andrewID": this.state.andrewID };
     const options = {
       limit: 1
     };
     this.dbUser
       .collection("buddies")
-      .find(query, options)
-      .first()
-      .then(user => {
-        console.log(`Successfully found user account from db:buddies.`);
-        this.setState({ name: user.name });
+      .findOne(query, options)
+      .then(buddy => {
+        if (buddy) {
+          console.log(`Successfully found document: ${buddy}.`);
+          this.state.user.name = buddy.name;
+        } else {
+          console.log("No document matches the provided query.");
+        }
       })
       .catch(console.error);
   }
@@ -125,14 +128,14 @@ class App extends Component {
         ", " +
         timeBy
     );
-    // this.client
-    //   .callFunction("addSearchingUser", [
-    //     this.state.user.andrewID,
-    //     this.state.currLocation,
-    //     dest
-    //   ])
-    //   .then(result => this.displaySearchers)
-    //   .catch(console.error);
+    this.client
+      .callFunction("addSearchingUser", [
+        this.state.user.andrewID,
+        this.state.currLocation,
+        dest
+      ])
+      .then(result => this.displaySearchers)
+      .catch(console.error);
     this.dbSearching
       .collection("searcher")
       .insertOne({
