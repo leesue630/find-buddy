@@ -7,9 +7,10 @@ import RequestDiv from "./components/requestDiv";
 import {
   Stitch,
   AnonymousCredential,
-  UserPasswordCredential,
-  RemoteMongoClient,
-  UserPasswordAuthProviderClient
+  // UserPasswordCredential,
+  RemoteMongoClient
+  // BSON,
+  // UserPasswordAuthProviderClient
 } from "mongodb-stitch-browser-sdk";
 
 class App extends Component {
@@ -18,7 +19,6 @@ class App extends Component {
   constructor(props) {
     super(props);
     this.state = {
-      searching: false,
       user: {
         andrewID: "nwai",
         name: ""
@@ -44,11 +44,11 @@ class App extends Component {
     this.dbSearching = mongodb.db("searching");
     this.dbUser = mongodb.db("user");
     this.displayOnLoad();
-    this.updateUserDisplay();
+    this.getUserInfo();
   }
 
-  updateUserDisplay() {
-    const query = { "buddies.andrewID": this.state.andrewID };
+  getUserInfo() {
+    var query = { "buddies.andrewID": this.state.andrewID };
     const options = {
       limit: 1
     };
@@ -57,20 +57,34 @@ class App extends Component {
       .findOne(query, options)
       .then(buddy => {
         if (buddy) {
-          console.log(`Successfully found document: ${buddy}.`);
+          console.log(`User found: ${buddy}.`);
           this.state.user.name = buddy.name;
         } else {
-          console.log("No document matches the provided query.");
+          console.log("No user found.");
         }
       })
       .catch(console.error);
+    var query = { "searcher.andrewID": this.state.andrewID };
+    this.dbSearching
+      .collection("searcher")
+      .findOne(query, options)
+      .then(searcher => {
+        if (searcher) {
+          console.log(`Existing request found: ${searcher}.`);
+          this.state.searching = true;
+        } else {
+          console.log("No existing request.");
+          this.state.searching = true;
+        }
+      })
+      .catch(console.error);
+    this.state.currLocation = this.locationChoices[0];
   }
 
   displaySearchers() {
     // query the remote DB and update the component state
     console.log("displaySearchers called");
     console.log(this.dbSearching);
-    console.log("hi");
     this.dbSearching
       .collection("searcher")
       .find({}, { limit: 1000 })
@@ -87,7 +101,7 @@ class App extends Component {
       .loginWithCredential(new AnonymousCredential())
       .then(() => {
         this.displaySearchers();
-        this.updateUserDisplay();
+        this.getUserInfo();
       })
       .catch(console.error);
 
@@ -101,28 +115,49 @@ class App extends Component {
     //   .then(authedUser => {
     //     console.log(`successfully logged in with id: ${authedUser.id}`);
     //     this.displaySearchers();
-    //     this.updateUserDisplay();
+    //     this.getUserInfo();
     //   })
     //   .catch(err => console.error(`login failed with error: ${err}`));
   }
 
   getBuddy = (dest, timeBy) => {
     // GET BUDDY FUNCTION GOES HERE
+    const query = {
+      $and: [
+        { destination: { $eq: dest } },
+        { currLocation: { $eq: this.state.currLocation } },
+        { timeBy: { $eq: timeBy } }
+      ]
+    };
+    const options = {
+      limit: 1
+    };
+    this.dbSearching
+      .collection("searcher")
+      .findOne(query, options)
+      .then(buddy => {
+        if (buddy) {
+          console.log(`Successfully found a buddy: ${buddy.name}`);
+        } else {
+          console.log("No buddy found.");
+        }
+      })
+      .catch(console.error);
+  };
+
+  addRequest = (dest, timeBy) => {
     this.dbSearching
       .collection("searcher")
       .insertOne({
         andrewID: this.state.user.andrewID,
         currLocation: this.state.currLocation,
-        destination: dest
+        destination: dest,
+        timeBy: timeBy
       })
       .then(() => {
         this.displaySearchers();
         // this.getBuddy(dest, timeBy);
       });
-  };
-
-  addRequest = (dest, timeBy) => {
-    // ADD THE ADD TO SEARCHING FUNCTION HERE
   };
 
   handleRequestBuddy = (dest, timeBy) => {
@@ -146,11 +181,26 @@ class App extends Component {
     this.setState({ currLocation: loc });
   };
 
+  handleCancelRequest = () => {
+    console.log("Cancel request");
+    const query = { andrewID: this.state.user.andrewID };
+    this.dbSearching
+      .collection("searcher")
+      .deleteOne(query)
+      .then(result => {
+        console.log(`Deleted ${result.deletedCount} item.`);
+        this.displaySearchers();
+      })
+      .catch(err => console.error(`Delete failed with error: ${err}`));
+    this.setState({ searching: false });
+  };
+
   render() {
     return (
       <React.Fragment>
         <InfoCard
           andrewID={this.state.user.andrewID}
+          searching={this.state.searching}
           name={this.state.user.name}
         />
         Current:{" "}
@@ -161,15 +211,17 @@ class App extends Component {
           onChange={this.handleCurrLocChange}
         />
         <RequestDiv
+          searching={this.state.searching}
           choices={this.locationChoices}
           onRequest={this.handleRequestBuddy}
+          onCancel={this.handleCancelRequest}
         />
         <ul>
           {this.state.searchers.map(searcher => {
             return (
               <li key={searcher.owner_id}>
-                Andrew ID: {searcher.andrewID}, Start: {searcher.currLocation},
-                Destination: {searcher.destination}
+                Andrew ID: {searcher.andrewID}, Request: {searcher.currLocation}{" "}
+                -> {searcher.destination}
               </li>
             );
           })}

@@ -5,7 +5,7 @@ import App from "./App";
 import Login from "./login";
 import * as serviceWorker from "./serviceWorker";
 import "bootstrap/dist/css/bootstrap.css";
-import { BrowserRouter, Route, Link } from "react-router-dom";
+import { BrowserRouter, Route } from "react-router-dom";
 
 const routing = (
   <BrowserRouter>

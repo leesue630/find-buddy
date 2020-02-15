@@ -56,8 +56,18 @@ class RequestDiv extends Component {
           }
           className="btn btn-primary btn-sm m-2"
         >
-          {this.props.searching ? "Request Buddy" : "Try Again"}
+          {!this.props.searching ? "Request Buddy" : "Try Again"}
         </button>
+        {this.props.searching ? (
+          <button
+            onClick={() => this.props.onCancel()}
+            className="btn btn-primary btn-sm m-2"
+          >
+            Cancel Request
+          </button>
+        ) : (
+          ""
+        )}
       </div>
     );
   }

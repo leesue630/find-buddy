@@ -3,9 +3,9 @@ import { BrowserRouter, Route, Link } from "react-router-dom";
 import App from "./App";
 import {
   Stitch,
-  AnonymousCredential,
+  // AnonymousCredential,
   UserPasswordCredential,
-  RemoteMongoClient,
+  // RemoteMongoClient,
   UserPasswordAuthProviderClient
 } from "mongodb-stitch-browser-sdk";
 
