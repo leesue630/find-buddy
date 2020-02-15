@@ -18,7 +18,8 @@ class App extends Component {
     this.state = {
       searching: false,
       user: {
-        andrewID: "nwai"
+        andrewID: this.props.andrewID,
+        fullName: ""
       },
       searchers: []
     };
@@ -40,7 +41,7 @@ class App extends Component {
     console.log("App Mounted");
     this.dbSearching = mongodb.db("searching");
     this.dbBuddies = mongodb.db("buddies");
-    this.displaySearchersOnLoad();
+    this.displayOnLoad();
     this.updateUserDisplay();
   }
 
@@ -50,12 +51,12 @@ class App extends Component {
       limit: 1
     };
     this.dbBuddies
-      .collection("item")
+      .collection("item") // TODO: FIX COLLECTION NAME
       .find(query, options)
       .first()
       .then(user => {
         console.log(`Successfully found user account from db:buddies.`);
-        this.setState({ name: user.Name });
+        this.setState({ name: user.fullName });
       })
       .catch(console.error);
   }
@@ -74,12 +75,26 @@ class App extends Component {
       })
       .catch(console.error);
   }
-  displaySearchersOnLoad() {
+  displayOnLoad() {
     // Anonymously log in and display comments on load
+    // this.client.auth
+    //   .loginWithCredential(new AnonymousCredential())
+    //   .then(this.displaySearchers)
+    //   .catch(console.error);
+
+    const credential = new UserPasswordCredential(
+      this.state.andrewID + "@andrew.cmu.edu",
+      this.props.password
+    );
     this.client.auth
-      .loginWithCredential(new AnonymousCredential())
-      .then(this.displaySearchers)
-      .catch(console.error);
+      .loginWithCredential(credential)
+      // Returns a promise that resolves to the authenticated user
+      .then(authedUser => {
+        console.log(`successfully logged in with id: ${authedUser.id}`);
+        this.displaySearchers();
+        this.updateUserDisplay();
+      })
+      .catch(err => console.error(`login failed with error: ${err}`));
   }
 
   handleRequestBuddy = (dest, timeBy) => {
